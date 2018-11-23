@@ -2,8 +2,12 @@ function Start-OutlookProfile {
     param(
         [string] $RemoveAccount,
         [string] $PrimaryAccount,
+        [string] $BackupPath = "$($env:USERPROFILE)\Desktop",
         [switch] $GUI,
-        [switch] $DisplayProgress
+        [switch] $DisplayProgress,
+        [switch] $NoBackup,
+        [switch] $DebugOutput,
+        [switch] $WhatIf
     )
 
 
@@ -127,9 +131,6 @@ function Start-OutlookProfile {
             $Array
         }
     }
-
-    $AllData | Ft -AutoSize
-
     <#
     if (-not $GUI) {
         # Assing all profiles
@@ -164,21 +165,27 @@ function Start-OutlookProfile {
     }
     #>
 
-    $Backups = foreach ($OutlookVersion in $MainKey.Keys) {
-        $OutlookRegistryKey = $MainKey.$OutlookVersion
-        [string] $BackupPath = "$($env:USERPROFILE)\Desktop"
-        [string] $BackupName = "$OutlookVersion-RegistryProfile"
-        # Make registry Backup
-        Write-Color "[i] ", 'Backup of Key ', $OutlookRegistryKey, ' to ', $BackupPath -Color Blue, White, Yellow, White, Yellow
+    if (-not $NoBackup) {
+        # Backup
+        $Backups = foreach ($OutlookVersion in $MainKey.Keys) {
+            $OutlookRegistryKey = $MainKey.$OutlookVersion
 
+            [string] $BackupName = "$OutlookVersion-RegistryProfile"
+            # Make registry Backup
+            #Write-Color "[i] ", 'Backup of Key ', $OutlookRegistryKey, ' to ', $BackupPath -Color Blue, White, Yellow, White, Yellow
+            $Backup = Backup-RegistryPath -Key $OutlookRegistryKey -BackupPath $BackupPath -BackupName $BackupName
+            if ($null -ne $Backup) {
+                #try {
+                #    Write-Color "[i] ", "Backup of Outlook profiles made to ", $Backup -Color Blue, White, Yellow -LinesAfter 1
+                #} catch {
+                    Write-Color "[i] Backup of Outlook profiles made to $Backup"
+                #}
+            } else {
 
-        $Backup = Backup-RegistryPath -Key $OutlookRegistryKey -BackupPath $BackupPath -BackupName $BackupName
-        if ($null -ne $Backup) {
-            Write-Color "[i] ", "Backup of Outlook profiles made to ", $Backup -Color Blue, White, Yellow -LinesAfter 1
+            }
         }
+
     }
-
-
 
     foreach ($Mail in $AllData) {
         if ($Mail.ProfilePath) {
@@ -195,8 +202,14 @@ function Start-OutlookProfile {
                         )
 
                         foreach ($Key in $Keys) {
-                            Write-Color "Removing key ", $Key -Color White, Yellow
-                            #Remove-Item -Path $Key -Confirm:$false #-WhatIf
+                            #try {
+                            #    Write-Color '[i] ', "Removing key ", $Key -Color Blue, White, Yellow
+                            #} catch {
+                                Write-host "[i] Removing key $Key"
+                            #}
+                            if (-Not $WhatIf) {
+                                Remove-Item -Path $Key -Confirm:$false #-WhatIf
+                            }
                         }
 
                     }
@@ -205,14 +218,27 @@ function Start-OutlookProfile {
                     if ($Mail.AccountName -match $PrimaryAccount) {
                         $Default = "$($Mail.ProfilePath)\0a0d020000000000c000000000000046"
                         if ($Mail.RequiredServiceUID) {
-                            Write-Color "Setting defualt profile ", $Default, ' with ', $Mail.RequiredServiceUID -Color White, Yellow, White, Green
-                            #Set-ItemProperty -Path $Default -Name '01023d15' -Value $Mail.MyValue -Type Binary #-WhatIf
+                            #Try {
+                            #    Write-Color "[i] ", "Setting default profile ", $Default, ' with ', $Mail.RequiredServiceUID -Color Blue, White, Yellow, White, Green
+                            #} catch {
+                                Write-Host "[i] Setting default profile $Default with $($Mail.RequiredServiceUID)"
+                            #}
+                            if (-not $WhatIf) {
+                                Set-ItemProperty -Path $Default -Name '01023d15' -Value $Mail.MyValue -Type Binary #-WhatIf
+                            }
                         }
 
                         [int] $PrimaryProfile = $Mail.ProfileNumber
                         [byte[]] $ByteArray = @($PrimaryProfile, 0, 0, 0)
                         $SubValue = "$($Mail.ProfilePath)\9375CFF0413111d3B88A00104B2A6676"
-                        #Set-ItemProperty -Path $SubValue -Name "{ED475418-B0D6-11D2-8C3B-00104B2A6676}" -Value $ByteArray -Type Binary #-WhatIf
+                        #Try {
+                        #    Write-Color "[i] ", "Setting default profile ", $SubValue, ' in ', "{ED475418-B0D6-11D2-8C3B-00104B2A6676}", ' with ', $ByteArray -Color Blue, White, Yellow, White, Green, White, Yellow
+                        #} catch {
+                            Write-Color "[i] Setting default profile $SubValue in {ED475418-B0D6-11D2-8C3B-00104B2A6676} with $ByteArray"
+                        #}
+                        if (-not $WhatIf) {
+                            Set-ItemProperty -Path $SubValue -Name "{ED475418-B0D6-11D2-8C3B-00104B2A6676}" -Value $ByteArray -Type Binary #-WhatIf
+                        }
                     }
                 }
             }
@@ -225,9 +251,18 @@ function Start-OutlookProfile {
         # Check if user wants to remove any account
         if ($RemoveAccount) {
             if ($Left.Email -match "$RemoveAccount") {
-                Write-Color "Removing leftovers key ", $Left.RegistryKey -Color White, Yellow
-                #Remove-Item -Path $Left.RegistryKey -Recurse -Confirm:$False
+                #try {
+                #    Write-Color '[i] ', 'Removing leftovers key ', $Left.RegistryKey -Color Blue, White, Yellow
+                #} catch {
+                    Write-Host "[i] Removing leftovers key $($Left.RegistryKey)"
+                #}
+                if (-not $WhatIf) {
+                    Remove-Item -Path $Left.RegistryKey -Recurse -Confirm:$False
+                }
             }
         }
+    }
+    if ($DebugOutput) {
+        $AllData
     }
 }

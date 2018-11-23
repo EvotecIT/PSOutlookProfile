@@ -1,5 +1,7 @@
 Clear-Host
 
-Import-Module PSOutlookProfile
+Import-Module PSOutlookProfile -Force
 
-Start-OutlookProfile
+Start-OutlookProfile -WhatIf -RemoveAccount 'przemyslaw.klys@euvic.pl' -PrimaryAccount 'przemyslaw.klys@evotec.pl'
+
+#Start-OutlookProfile -NoBackup -WhatIf -RemoveAccount 'przemyslaw.klys@euvic.pl' -PrimaryAccount 'przemyslaw.klys@evotec.pl'

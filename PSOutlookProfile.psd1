@@ -51,7 +51,7 @@ Description = 'Tool to manage (to some degree) Outlook Profile in PowerShell'
 # ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-# RequiredModules = @()
+RequiredModules = @('PSWriteColor')
 
 # Assemblies that must be loaded prior to importing this module
 # RequiredAssemblies = @()
