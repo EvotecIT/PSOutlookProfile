@@ -228,8 +228,7 @@ function Start-OutlookProfile {
                             }
                         }
 
-                        [int] $PrimaryProfile = $Mail.ProfileNumber
-                        [byte[]] $ByteArray = @($PrimaryProfile, 0, 0, 0)
+                        [byte[]] $ByteArray = Convert-HexToBinary -Hex $Mail.ProfileNumber
                         $SubValue = "$($Mail.ProfilePath)\9375CFF0413111d3B88A00104B2A6676"
                         #Try {
                         #    Write-Color "[i] ", "Setting default profile ", $SubValue, ' in ', "{ED475418-B0D6-11D2-8C3B-00104B2A6676}", ' with ', $ByteArray -Color Blue, White, Yellow, White, Green, White, Yellow
